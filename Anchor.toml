@@ -1,14 +1,18 @@
 [features]
-seeds = false
+seeds = true
 skip-lint = false
+
 [programs.localnet]
-self_custodial_facebook = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+smart_bond = "AxzjfJo9QFjJm8nkeLrvCYgGg5FxPgNj666foUATE5UU"
+
+[programs.devnet]
+smart_bond = "AxzjfJo9QFjJm8nkeLrvCYgGg5FxPgNj666foUATE5UU"
 
 [registry]
 url = "https://api.apr.dev"
 
 [provider]
-cluster = "Localnet"
+cluster = "devnet"
 wallet = "/home/ivan/.config/solana/id.json"
 
 [scripts]
