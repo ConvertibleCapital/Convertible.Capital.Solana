@@ -1,3 +1,4 @@
+use crate::modes::Convertible;
 use anchor_lang::prelude::*;
 
 #[account]
@@ -14,8 +15,12 @@ pub struct BondAccount {
     pub mint_b: Pubkey,
     pub amount_a: u64,
     pub mint_a: Pubkey,
-    #[max_len(10)]
-    pub maturity: String,
+    pub maturity_date: i64,
+    pub is_for_sale: bool,
+    pub sale_price: u64,
+    pub price_feed: Pubkey,
+    pub is_convertible: bool,
+    pub convertible: Convertible,
 }
 
 // impl Space for BondAccount {
@@ -30,5 +35,11 @@ pub struct BondAccount {
 //         32 +        // mint
 //         8 +         // collateral_amount
 //         32 +        // collateral_mint
-//         (4 + 10); // 10 chars of maturity
+//         8 +         // maturity
+//         ? +         // is_for_sale
+//                     //sale_price
+//                     //price_feed
+//                     //is_convertible
+//         ? +         // convertible_price
+//         ? +         // convertible_mode
 // }

@@ -6,6 +6,12 @@ import { createAccount, createMint, mintTo, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_P
 import { Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Transaction, TransactionMessage, VersionedTransaction } from "@solana/web3.js";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 
+export enum Convertible {
+  WhenGraterThan,
+  WhenLessThan,
+}
+
+
 describe("smart-bond", () => {
   const provider = anchor.AnchorProvider.env();
   const connection = provider.connection;
@@ -15,7 +21,7 @@ describe("smart-bond", () => {
   const issuer = anchor.web3.Keypair.generate();
   const owner = anchor.web3.Keypair.generate();
   const payer = (provider.wallet as NodeWallet).payer;
-  const escrowedXTokens = anchor.web3.Keypair.generate();
+  const escrow_a_token = anchor.web3.Keypair.generate();
 
   const ammount_a = 5_000;        // collateral (ETH)
   const ammount_b = 10_000_000;   // loan (USDC)
@@ -120,11 +126,23 @@ describe("smart-bond", () => {
     );
   })
 
+  function addDays(date, days) {
+    var result = new Date(date);
+    result.setDate(result.getDate() + days);
+    return result;
+  }
+
+
 
   it("<Create the bond>", async () => {
+    // https://www.anchor-lang.com/docs/javascript-anchor-types
     const seed = new anchor.BN(randomBytes(8));
+    const maturityDate = new anchor.BN(addDays(new Date(), 30).getTime());
+    const isForSale = true;
+    const priceFeed = new anchor.web3.PublicKey("H6ARHf6YXhGYeQfUzQNGk6rDNnLBQKrenN712K4AQJEG");
+    const convertible = { whenGraterThan: { value: new anchor.BN(160) } }
     const ix = await program.methods
-      .initialize(seed, "CryCo 24", new anchor.BN(ammount_a), new anchor.BN(ammount_b), "2024-12-31")
+      .createBond(seed, "CryCo 24", new anchor.BN(ammount_a), new anchor.BN(ammount_b), maturityDate, isForSale, priceFeed, convertible)
       .accounts(
         {
           issuer: issuer.publicKey,
@@ -132,28 +150,14 @@ describe("smart-bond", () => {
           issuerMintB: mint_b,
           issuerAtaA: issuer_a_token,
           bondAccount: escrow,
-          vaultAccount: escrowedXTokens.publicKey,
+          vaultAccount: escrow_a_token.publicKey,
           tokenProgram: TOKEN_PROGRAM_ID,
           systemProgram: SystemProgram.programId
         }
       )
-      .signers([issuer, escrowedXTokens])
+      .signers([issuer, escrow_a_token])
       .rpc({ skipPreflight: true });
   });
-
-
-  // it("Update bond owner", async () => {
-  //   const ix = await program.methods.updateBondOwner("Mick")
-  //   const userSmartBond = (await ix.pubkeys()).bondAccount
-  //   console.log("User bond account address :: ", userSmartBond.toString());
-  //   // Update user's bond owner
-  //   const tx = await ix.rpc()
-  //   console.log("Your transaction signature", tx);
-  //   // Bond Details
-  //   let bondDetails = await program.account.bondAccount.fetch(userSmartBond);
-  //   console.log(`Bond account is updated \n Bond name :: ${bondDetails.name} \n Owner :: ${bondDetails.owner} \n Currency :: ${bondDetails.currency} \n Amount :: ${bondDetails.amount}`)
-  // });
-
 
   it("<Find the bond>", async () => {
     const [userSmartBond, _] = await anchor.web3.PublicKey.findProgramAddressSync(
@@ -170,6 +174,7 @@ describe("smart-bond", () => {
       const tokenAccount = await connection.getTokenAccountsByOwner(new PublicKey(escrow), { programId: TOKEN_PROGRAM_ID });
       const accountData = AccountLayout.decode(tokenAccount.value[0].account.data);
       console.log(` Collateral mint :: ${new PublicKey(accountData.mint)} \n Collateral amount :: ${accountData.amount}`);
+      console.log(` Mature date :: ${new Date(bondDetails.maturityDate.toNumber())}`);
 
     } catch (error) {
       console.log("Bond account does not exist :: ", error)
@@ -178,11 +183,11 @@ describe("smart-bond", () => {
   });
 
   it("<Buy the bond>", async () => {
-    const tx = await program.methods.buy()
+    const tx = await program.methods.buyBond()
       .accounts({
         owner: owner.publicKey,
         bondAccount: escrow,
-        vaultAccount: escrowedXTokens.publicKey,
+        vaultAccount: escrow_a_token.publicKey,
         issuerAtaB: issuer_b_token,
         ownerAtaA: owner_a_token,
         ownerAtaB: owner_b_token,
@@ -206,23 +211,40 @@ describe("smart-bond", () => {
       "H6ARHf6YXhGYeQfUzQNGk6rDNnLBQKrenN712K4AQJEG"
     );
     const tx = await program.methods
-      .price()
+      .checkBond()
       .accounts({
+        bondAccount: escrow,
         priceFeed: PYTH_FEED_ID,
-        systemProgram: anchor.web3.SystemProgram.programId,
         clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
+        systemProgram: anchor.web3.SystemProgram.programId,
+
       })
       .rpc({ skipPreflight: true });
     console.log("Oracle Price Feed :: ", PYTH_FEED_ID.toString())
     console.log("Transaction signature :: ", tx);
   });
 
+  it.skip("<Repay the bond>", async () => {
+    const tx = await program.methods.repayBond()
+      .accounts({
+        issuer: issuer.publicKey,
+        bondAccount: escrow,
+        vaultAccount: escrow_a_token.publicKey,
+        issuerAtaA: issuer_a_token,
+        issuerAtaB: issuer_b_token,
+        ownerAtaB: owner_b_token,
+        tokenProgram: TOKEN_PROGRAM_ID
+      })
+      .signers([issuer])
+      .rpc({ skipPreflight: true });
+  });
+
   it("<Convert the bond>", async () => {
-    const tx = await program.methods.convert()
+    const tx = await program.methods.convertBond()
       .accounts({
         owner: owner.publicKey,
         bondAccount: escrow,
-        vaultAccount: escrowedXTokens.publicKey,
+        vaultAccount: escrow_a_token.publicKey,
         issuerAtaB: issuer_b_token,
         ownerAtaA: owner_a_token,
         ownerAtaB: owner_b_token,
@@ -230,6 +252,25 @@ describe("smart-bond", () => {
       })
       .signers([owner])
       .rpc();
+  });
+
+  it("<Accounts revision>", async () => {
+    await getMints('> Issuer (bond is sold)', issuer.publicKey);
+    await getMints('> Owner (new owner)', owner.publicKey);
+    await getMints('> Escrow', escrow);
+  });
+
+  it.skip("<Cancel the bond>", async () => {
+    const tx = await program.methods.cancelBond()
+      .accounts({
+        issuer: issuer.publicKey,
+        bondAccount: escrow,
+        vaultAccount: escrow_a_token.publicKey,
+        issuerAtaA: issuer_a_token,
+        tokenProgram: TOKEN_PROGRAM_ID
+      })
+      .signers([issuer])
+      .rpc({ skipPreflight: false })
   });
 
   it("<Accounts revision>", async () => {
@@ -258,24 +299,8 @@ describe("smart-bond", () => {
     console.log(` Issuer account: ${issuerBalance / LAMPORTS_PER_SOL}`)
     let ownerBalance = await provider.connection.getBalance(owner.publicKey)
     console.log(` Owner account: ${ownerBalance / LAMPORTS_PER_SOL}`)
-    let bondBalance = await provider.connection.getBalance(escrowedXTokens.publicKey)
+    let bondBalance = await provider.connection.getBalance(escrow_a_token.publicKey)
     console.log(` Bond account: ${bondBalance / LAMPORTS_PER_SOL}`)
   }
-
-
-  // it("Delete bond account", async () => {
-  //   const ix = await program.methods.deleteBond()
-  //   const userSmartBond = (await ix.pubkeys()).bondAccount
-  //   console.log("User bond account address :: ", userSmartBond.toString());
-  //   // Delete user's bond address
-  //   const tx = await ix.rpc()
-  //   console.log("Your transaction signature", tx);
-  //   try {
-  //     let bondDetails = await program.account.bondAccount.fetch(userSmartBond);
-  //     console.log(`Bond account is found \n Bond name :: ${bondDetails.name} \n Owner :: ${bondDetails.owner} \n Currency :: ${bondDetails.currency} \n Amount :: ${bondDetails.amount}`)
-  //   } catch {
-  //     console.log("Bond account is not found, the account was closed");
-  //   }
-  // });
 
 });

@@ -1,4 +1,4 @@
-use crate::states::BondAccount;
+use crate::{errors::BondErrorCode, states::BondAccount};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Token, TokenAccount};
 
@@ -6,7 +6,6 @@ use anchor_spl::token::{Token, TokenAccount};
 pub struct Buy<'info> {
     #[account(mut)]
     pub owner: Signer<'info>,
-    // we will use `buy` for buying user's bond account.
     #[account(
         mut,
         seeds = ["bond_account".as_bytes(), bond_account.issuer.as_ref()],
@@ -33,7 +32,12 @@ pub struct Buy<'info> {
 
 impl<'info> Buy<'info> {
     pub fn buy_bond(ctx: Context<Buy>) -> Result<()> {
-        // transfer owners's deposit (mint_b) to issurer
+        require!(
+            ctx.accounts.bond_account.is_for_sale == true,
+            BondErrorCode::NonForSale
+        );
+
+        // Transfer owners's deposit (mint_b) to issurer
         anchor_spl::token::transfer(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),
@@ -46,9 +50,10 @@ impl<'info> Buy<'info> {
             ctx.accounts.bond_account.amount_b,
         )?;
 
-        // setting a new bond owner
+        // Setting a new bond owner
         let bond_account_data = &mut ctx.accounts.bond_account;
         bond_account_data.owner = ctx.accounts.owner.key();
+        bond_account_data.is_for_sale = false;
         msg!(
             "Bond was sold to a new owner :: {0}",
             bond_account_data.owner

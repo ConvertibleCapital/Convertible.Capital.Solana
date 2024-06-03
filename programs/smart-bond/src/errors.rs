@@ -9,3 +9,15 @@ pub enum PriceErrorCode {
     #[msg("Invalid argument provided")]
     InvalidArgument,
 }
+
+#[error_code]
+pub enum BondErrorCode {
+    #[msg("Bond could not be converted now")]
+    NonConvertible,
+    #[msg("Bond is not opened for sale")]
+    NonForSale,
+    #[msg("Only bond owner can open bond for sale")]
+    NotEntitledForSell,
+    #[msg("Bond can not be redeemed after sale")]
+    NotForClosure,
+}

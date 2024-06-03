@@ -1,10 +1,11 @@
+use crate::modes::Convertible;
 use crate::states::BondAccount;
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Mint, Token, TokenAccount};
 
 #[derive(Accounts)]
 #[instruction(seed: u64, issuer_amount: u64)]
-pub struct Initialize<'info> {
+pub struct Create<'info> {
     #[account(mut)]
     pub issuer: Signer<'info>,
     pub issuer_mint_a: Account<'info, Mint>,
@@ -41,16 +42,20 @@ pub struct Initialize<'info> {
     pub system_program: Program<'info, System>,
 }
 
-impl<'info> Initialize<'info> {
+impl<'info> Create<'info> {
     pub fn create_bond(
-        ctx: Context<Initialize>,
+        ctx: Context<Create>,
         seed: u64,
         // bumps: &InitializeBumps,
         name: String,
         amount_a: u64,
         amount_b: u64,
-        maturity: String,
+        maturity_date: i64,
+        is_for_sale: bool,
+        price_feed: Pubkey,
+        convertible: Convertible,
     ) -> Result<()> {
+        // Saving info into program's on-chain bond_account.
         let bond_account_data = &mut ctx.accounts.bond_account;
         bond_account_data.seed = seed;
         bond_account_data.bump = ctx.bumps.bond_account;
@@ -62,9 +67,13 @@ impl<'info> Initialize<'info> {
         bond_account_data.mint_a = ctx.accounts.issuer_mint_a.key();
         bond_account_data.amount_b = amount_b;
         bond_account_data.mint_b = ctx.accounts.issuer_mint_b.key();
-        bond_account_data.maturity = maturity.to_owned();
+        bond_account_data.maturity_date = maturity_date;
+        bond_account_data.is_for_sale = is_for_sale;
+        bond_account_data.sale_price = amount_b;
+        bond_account_data.price_feed = price_feed;
+        bond_account_data.is_convertible = false;
+        bond_account_data.convertible = convertible;
 
-        // Printing User Info into program's on-chain transaction log.
         msg!(
             "Created a new bond with following details 
             Bond name :: {0}
@@ -78,7 +87,7 @@ impl<'info> Initialize<'info> {
             bond_account_data.mint_b
         );
 
-        // Transfer seller's x_token in program owned escrow token account
+        // Transfer issuer's mint_a in program owned escrow token account
         anchor_spl::token::transfer(
             CpiContext::new(
                 ctx.accounts.token_program.to_account_info(),

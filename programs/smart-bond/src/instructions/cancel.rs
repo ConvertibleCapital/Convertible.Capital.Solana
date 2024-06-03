@@ -1,4 +1,4 @@
-use crate::states::BondAccount;
+use crate::{errors::BondErrorCode, states::BondAccount};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Token, TokenAccount};
 
@@ -14,7 +14,7 @@ pub struct Cancel<'info> {
         bump = bond_account.bump,
     )]
     pub bond_account: Account<'info, BondAccount>,
-    #[account(mut, constraint = vault_account.key() == bond_account.issuer)]
+    #[account(mut/* , constraint = vault_account.key() == bond_account.issuer*/)]
     pub vault_account: Account<'info, TokenAccount>,
     #[account(
         mut,
@@ -27,7 +27,12 @@ pub struct Cancel<'info> {
 
 impl<'info> Cancel<'info> {
     pub fn cancel_bond(ctx: Context<Cancel>) -> Result<()> {
-        // return issuer's x_token back to him/her
+        require!(
+            ctx.accounts.bond_account.issuer.key() == ctx.accounts.bond_account.owner.key(),
+            BondErrorCode::NotForClosure
+        );
+
+        // Return issuer's collateral (mint_a) back
         anchor_spl::token::transfer(
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
@@ -38,18 +43,20 @@ impl<'info> Cancel<'info> {
                 },
                 &[&[
                     "bond_account".as_bytes(),
-                    ctx.accounts.issuer.key().as_ref(),
+                    ctx.accounts.bond_account.issuer.as_ref(),
                     &[ctx.accounts.bond_account.bump],
                 ]],
             ),
             ctx.accounts.vault_account.amount,
         )?;
 
+        // Close vault account
         anchor_spl::token::close_account(CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
             anchor_spl::token::CloseAccount {
                 account: ctx.accounts.vault_account.to_account_info(),
                 destination: ctx.accounts.issuer.to_account_info(),
+                //destination: ctx.accounts.issuer_ata_a.to_account_info(),
                 authority: ctx.accounts.bond_account.to_account_info(),
             },
             &[&[
@@ -59,7 +66,10 @@ impl<'info> Cancel<'info> {
             ]],
         ))?;
 
-        msg!("Bond account transactions cancelled successfully");
+        msg!(
+            "Bond was successfully closed by :: {0}",
+            ctx.accounts.issuer.key()
+        );
         Ok(())
     }
 }
