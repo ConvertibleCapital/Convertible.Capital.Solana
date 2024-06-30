@@ -6,7 +6,6 @@ use anchor_spl::token::{Token, TokenAccount};
 pub struct Cancel<'info> {
     #[account(mut)]
     pub issuer: Signer<'info>,
-    // we will use `close` for closing user's bond account.
     #[account(
         mut,
         close = issuer, constraint = bond_account.issuer == issuer.key(),
@@ -14,15 +13,15 @@ pub struct Cancel<'info> {
         bump = bond_account.bump,
     )]
     pub bond_account: Account<'info, BondAccount>,
-    #[account(mut/* , constraint = vault_account.key() == bond_account.issuer*/)]
+    #[account(mut/*, constraint = vault_account.key() == bond_account.vault_key*/)]
     pub vault_account: Account<'info, TokenAccount>,
     #[account(
         mut,
         constraint = issuer_ata_a.mint == vault_account.mint,
         constraint = issuer_ata_a.owner == issuer.key()
     )]
-    issuer_ata_a: Account<'info, TokenAccount>,
-    token_program: Program<'info, Token>,
+    pub issuer_ata_a: Account<'info, TokenAccount>,
+    pub token_program: Program<'info, Token>,
 }
 
 impl<'info> Cancel<'info> {
@@ -67,7 +66,10 @@ impl<'info> Cancel<'info> {
         ))?;
 
         msg!(
-            "Bond was successfully closed by :: {0}",
+            ">> Bond was successfully closed.
+            Issued by :: {0}
+            Closed by  :: {1}",
+            ctx.accounts.bond_account.issuer.key(),
             ctx.accounts.issuer.key()
         );
         Ok(())

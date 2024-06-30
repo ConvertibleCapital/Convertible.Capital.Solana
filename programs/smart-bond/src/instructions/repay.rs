@@ -1,4 +1,4 @@
-use crate::states::BondAccount;
+use crate::{errors::BondErrorCode, states::BondAccount};
 use anchor_lang::prelude::*;
 use anchor_spl::token::{Token, TokenAccount};
 
@@ -12,19 +12,25 @@ pub struct Repay<'info> {
         bump = bond_account.bump
     )]
     pub bond_account: Account<'info, BondAccount>,
-    #[account(mut/* , constraint = vault_account.key() == bond_account.owner*/)]
+    #[account(mut/*, constraint = vault_account.key() == bond_account.vault_key*/)]
     pub vault_account: Account<'info, TokenAccount>,
-
-    #[account(mut, constraint = issuer_ata_a.mint == bond_account.mint_a)]
+    #[account(
+        mut,
+        constraint = issuer_ata_a.mint == bond_account.mint_a,
+        constraint = issuer_ata_a.mint == vault_account.mint,
+        constraint = issuer_ata_a.owner == bond_account.issuer @ BondErrorCode::WrongCollateralRecepient,
+        constraint = issuer_ata_a.owner == issuer.key()
+    )]
     pub issuer_ata_a: Account<'info, TokenAccount>,
-
-    #[account(mut, constraint = issuer_ata_b.mint == bond_account.mint_b)]
+    #[account(mut, 
+        constraint = issuer_ata_b.mint == bond_account.mint_b,
+        constraint = issuer_ata_b.owner == issuer.key()
+    )]
     pub issuer_ata_b: Account<'info, TokenAccount>,
-
     #[account(
         mut,
         constraint = owner_ata_b.mint == bond_account.mint_b,
-        /*constraint = owner_ata_b.owner == owner.key()*/
+        constraint = owner_ata_b.owner == bond_account.owner @ BondErrorCode::WrongRepaymentRecepient
     )]
     pub owner_ata_b: Account<'info, TokenAccount>,
     pub token_program: Program<'info, Token>,
@@ -63,7 +69,7 @@ impl<'info> Repay<'info> {
             ctx.accounts.vault_account.amount,
         )?;
 
-        msg!("Bond was successfully repaid.");
+        msg!(">> Bond was successfully repaid.");
 
         Ok(())
     }

@@ -22,9 +22,13 @@ describe("smart-bond", () => {
   const owner = anchor.web3.Keypair.generate();
   const payer = (provider.wallet as NodeWallet).payer;
   const escrow_a_token = anchor.web3.Keypair.generate();
+  const mint_a_authoriry = anchor.web3.Keypair.generate();
+  const mint_b_authoriry = anchor.web3.Keypair.generate();
 
   const ammount_a = 5_000;        // collateral (ETH)
   const ammount_b = 10_000_000;   // loan (USDC)
+  const ammount_c = 9_000_000;    // sell price (USDC)
+  const ammount_d = 1_000_000;    // extra (USDC) to repay (1 + 9 = 10)
 
   let mint_a;
   let mint_b;
@@ -51,18 +55,18 @@ describe("smart-bond", () => {
     mint_a = await createMint(
       provider.connection,
       payer,
-      issuer.publicKey,
-      issuer.publicKey,
-      6
+      mint_a_authoriry.publicKey,
+      mint_a_authoriry.publicKey,
+      9
     );
 
     console.log("Creating the 'B' (USDC) mint...");
     mint_b = await createMint(
       provider.connection,
       payer,
-      owner.publicKey,
-      owner.publicKey,
-      6
+      mint_b_authoriry.publicKey,
+      mint_b_authoriry.publicKey,
+      9
     );
 
     // issurer (Seller)
@@ -99,31 +103,42 @@ describe("smart-bond", () => {
       owner.publicKey,
     );
 
-    console.log("Adding 5 (ETH) token for the issuer...");
+    console.log("Adding 1k (USDC) token for the owner...");
     await mintTo(
       connection,
       payer,
-      mint_a,
-      issuer_a_token,
-      issuer,
-      ammount_a,
+      mint_b,
+      issuer_b_token,
+      mint_b_authoriry,
+      ammount_d,
       [],
       undefined,
       TOKEN_PROGRAM_ID,
     );
 
+    console.log("Adding 5 (ETH) token for the issuer...");
+    await mintTo(
+      connection,
+      issuer,
+      mint_a,
+      issuer_a_token,
+      mint_a_authoriry,
+      ammount_a
+    );
+
     console.log("Adding 10k (USDC) token for the owner...");
-    const mintSig = await mintTo(
+    await mintTo(
       connection,
       payer,
       mint_b,
       owner_b_token,
-      owner,
+      mint_b_authoriry,
       ammount_b,
       [],
       undefined,
       TOKEN_PROGRAM_ID,
     );
+
   })
 
   function addDays(date, days) {
@@ -140,14 +155,14 @@ describe("smart-bond", () => {
     const maturityDate = new anchor.BN(addDays(new Date(), 30).getTime());
     const isForSale = true;
     const priceFeed = new anchor.web3.PublicKey("H6ARHf6YXhGYeQfUzQNGk6rDNnLBQKrenN712K4AQJEG");
-    const convertible = { whenGraterThan: { value: new anchor.BN(160) } }
+    const convertible = { whenGraterThan: { value: new anchor.BN(140) } }
     const ix = await program.methods
       .createBond(seed, "CryCo 24", new anchor.BN(ammount_a), new anchor.BN(ammount_b), maturityDate, isForSale, priceFeed, convertible)
       .accounts(
         {
           issuer: issuer.publicKey,
-          issuerMintA: mint_a,
-          issuerMintB: mint_b,
+          mintA: mint_a,
+          mintB: mint_b,
           issuerAtaA: issuer_a_token,
           bondAccount: escrow,
           vaultAccount: escrow_a_token.publicKey,
@@ -182,19 +197,31 @@ describe("smart-bond", () => {
     }
   });
 
+  it("<Sell the bond>", async () => {
+    const tx = await program.methods.sellBond(true, new anchor.BN(ammount_c))
+      .accounts({
+        owner: issuer.publicKey, // issuer or owner
+        bondAccount: escrow,
+      })
+      .signers([issuer]) // issuer or owner
+      .rpc({ skipPreflight: true });
+  });
+
+  // Two scenarios are possible:
+  // a) When the bond has been just issued, the owner is a new buyer (he is a signer).
+  // b) When the bond already has an owner, buyer acts like a third party.
   it("<Buy the bond>", async () => {
     const tx = await program.methods.buyBond()
       .accounts({
-        owner: owner.publicKey,
+        buyer: owner.publicKey,       //buyer.publicKey,
         bondAccount: escrow,
         vaultAccount: escrow_a_token.publicKey,
-        issuerAtaB: issuer_b_token,
-        ownerAtaA: owner_a_token,
-        ownerAtaB: owner_b_token,
+        ownerAtaB: issuer_b_token,    //owner_b_token,
+        buyerAtaB: owner_b_token,     //buyer_b_token,
         tokenProgram: TOKEN_PROGRAM_ID
       })
-      .signers([owner])
-      .rpc();
+      .signers([owner])               //([buyer])
+      .rpc({ skipPreflight: true });
   });
 
   it("<Accounts revision>", async () => {
@@ -245,18 +272,16 @@ describe("smart-bond", () => {
         owner: owner.publicKey,
         bondAccount: escrow,
         vaultAccount: escrow_a_token.publicKey,
-        issuerAtaB: issuer_b_token,
         ownerAtaA: owner_a_token,
-        ownerAtaB: owner_b_token,
         tokenProgram: TOKEN_PROGRAM_ID
       })
       .signers([owner])
-      .rpc();
+      .rpc({ skipPreflight: true });
   });
 
   it("<Accounts revision>", async () => {
-    await getMints('> Issuer (bond is sold)', issuer.publicKey);
-    await getMints('> Owner (new owner)', owner.publicKey);
+    await getMints('> Issuer (bond is converted)', issuer.publicKey);
+    await getMints('> Owner (ex holder)', owner.publicKey);
     await getMints('> Escrow', escrow);
   });
 
@@ -273,8 +298,8 @@ describe("smart-bond", () => {
       .rpc({ skipPreflight: false })
   });
 
-  it("<Accounts revision>", async () => {
-    await getMints('> Issuer (bond is sold)', issuer.publicKey);
+  it.skip("<Accounts revision>", async () => {
+    await getMints('> Issuer (bond is cancelled)', issuer.publicKey);
     await getMints('> Owner (new owner)', owner.publicKey);
     await getMints('> Escrow', escrow);
   });

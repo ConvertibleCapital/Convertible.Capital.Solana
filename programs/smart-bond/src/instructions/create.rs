@@ -8,17 +8,15 @@ use anchor_spl::token::{Mint, Token, TokenAccount};
 pub struct Create<'info> {
     #[account(mut)]
     pub issuer: Signer<'info>,
-    pub issuer_mint_a: Account<'info, Mint>,
-    pub issuer_mint_b: Account<'info, Mint>,
-
+    pub mint_a: Account<'info, Mint>,
+    pub mint_b: Account<'info, Mint>,
     #[account(
         mut,
-        constraint = issuer_ata_a.mint == issuer_mint_a.key() && issuer_ata_a.owner == issuer.key(),
-        token::mint = issuer_mint_a,
-        token::authority = issuer
+        constraint = issuer_ata_a.mint == mint_a.key(),
+        constraint = issuer_ata_a.mint == vault_account.mint,
+        constraint = issuer_ata_a.owner == issuer.key()
     )]
     pub issuer_ata_a: Account<'info, TokenAccount>,
-
     #[account(
         init_if_needed,
         payer = issuer,
@@ -28,16 +26,13 @@ pub struct Create<'info> {
         bump
     )]
     pub bond_account: Account<'info, BondAccount>,
-
     #[account(
         init,
         payer = issuer,
-        token::mint = issuer_mint_a,
+        token::mint = mint_a,
         token::authority = bond_account,
     )]
     pub vault_account: Account<'info, TokenAccount>,
-
-    //pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
@@ -64,9 +59,9 @@ impl<'info> Create<'info> {
 
         bond_account_data.name = name;
         bond_account_data.amount_a = amount_a;
-        bond_account_data.mint_a = ctx.accounts.issuer_mint_a.key();
+        bond_account_data.mint_a = ctx.accounts.mint_a.key();
         bond_account_data.amount_b = amount_b;
-        bond_account_data.mint_b = ctx.accounts.issuer_mint_b.key();
+        bond_account_data.mint_b = ctx.accounts.mint_b.key();
         bond_account_data.maturity_date = maturity_date;
         bond_account_data.is_for_sale = is_for_sale;
         bond_account_data.sale_price = amount_b;
@@ -75,12 +70,11 @@ impl<'info> Create<'info> {
         bond_account_data.convertible = convertible;
 
         msg!(
-            "Created a new bond with following details 
+            ">> Bond was successfully created. 
             Bond name :: {0}
             Bond owner :: {1}
             Face amount :: {2}
-            Mint :: {3}
-            ",
+            Mint :: {3}",
             bond_account_data.name,
             bond_account_data.owner,
             bond_account_data.amount_b,
@@ -99,6 +93,16 @@ impl<'info> Create<'info> {
             ),
             amount_a,
         )?;
+
+        msg!(
+            ">> Bonds was collateralized. 
+            Vault account :: {0}
+            Vault owner :: {1}
+            Vault mint :: {2}",
+            ctx.accounts.vault_account.key(),
+            ctx.accounts.vault_account.owner,
+            ctx.accounts.vault_account.mint
+        );
 
         Ok(())
     }

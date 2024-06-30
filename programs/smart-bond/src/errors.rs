@@ -18,6 +18,12 @@ pub enum BondErrorCode {
     NonForSale,
     #[msg("Only bond owner can open bond for sale")]
     NotEntitledForSell,
-    #[msg("Bond can not be redeemed after sale")]
+    #[msg("Bond can not be closed after sale")]
     NotForClosure,
+    #[msg("Only bond owner can convert the bond")]
+    NotEntitledForConversion,
+    #[msg("Repayment recepient must be a bond owner")]
+    WrongRepaymentRecepient,
+    #[msg("Collateral recepient must be a bond issuer")]
+    WrongCollateralRecepient
 }

@@ -46,12 +46,11 @@ impl<'info> Pyth<'info> {
         let asset_price = asset_price_full as f64 * 10f64.powi(asset_exponent);
 
         msg!(
-            "Market data request details
+            ">> Market data check.
             Timestamp :: {0}
             Convertible at :: {1}
             Current price :: {2}
-            Confidence interval :: {3}
-            ",
+            Confidence interval :: {3}",
             timestamp,
             bond_account_data.convertible,
             asset_price,

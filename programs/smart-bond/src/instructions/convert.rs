@@ -12,21 +12,14 @@ pub struct Convert<'info> {
         bump = bond_account.bump
     )]
     pub bond_account: Account<'info, BondAccount>,
-    #[account(mut/* , constraint = vault_account.key() == bond_account.owner*/)]
+    #[account(mut/*, constraint = vault_account.key() == bond_account.vault_key*/)]
     pub vault_account: Account<'info, TokenAccount>,
-
-    #[account(mut, constraint = issuer_ata_b.mint == bond_account.mint_b)]
-    pub issuer_ata_b: Account<'info, TokenAccount>,
-
-    #[account(mut, constraint = owner_ata_a.mint == bond_account.mint_a)]
-    pub owner_ata_a: Account<'info, TokenAccount>,
-
-    #[account(
-        mut,
-        constraint = owner_ata_b.mint == bond_account.mint_b,
-        constraint = owner_ata_b.owner == owner.key()
+    #[account(mut, 
+        constraint = owner_ata_a.mint == bond_account.mint_a,
+        constraint = owner_ata_a.owner == bond_account.owner @ BondErrorCode::NotEntitledForConversion,
+        /*constraint = owner_ata_a.owner == owner.key()*/
     )]
-    pub owner_ata_b: Account<'info, TokenAccount>,
+    pub owner_ata_a: Account<'info, TokenAccount>,
     pub token_program: Program<'info, Token>,
 }
 
@@ -56,11 +49,13 @@ impl<'info> Convert<'info> {
         )?;
 
         msg!(
-            "Bond was successfully converted.
+            ">> Bond was successfully converted.
             Collateral owner :: {0}
-            Vault ammount :: {1}",
+            Collateral ammount :: {1}
+            Collateral mint :: {2}",
             ctx.accounts.bond_account.owner,
-            ctx.accounts.vault_account.amount
+            ctx.accounts.vault_account.amount,
+            ctx.accounts.vault_account.mint
         );
 
         Ok(())
