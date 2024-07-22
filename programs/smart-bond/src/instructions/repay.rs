@@ -8,16 +8,17 @@ pub struct Repay<'info> {
     pub issuer: Signer<'info>,
     #[account(
         mut,
+        close = issuer, constraint = bond_account.issuer == issuer.key(),
         seeds = ["bond_account".as_bytes(), bond_account.issuer.as_ref()],
         bump = bond_account.bump
     )]
     pub bond_account: Account<'info, BondAccount>,
-    #[account(mut/*, constraint = vault_account.key() == bond_account.vault_key*/)]
-    pub vault_account: Account<'info, TokenAccount>,
+    #[account(mut/*, constraint = vault_ata_a.key() == bond_account.vault_key*/)]
+    pub vault_ata_a: Account<'info, TokenAccount>,
     #[account(
         mut,
         constraint = issuer_ata_a.mint == bond_account.mint_a,
-        constraint = issuer_ata_a.mint == vault_account.mint,
+        constraint = issuer_ata_a.mint == vault_ata_a.mint,
         constraint = issuer_ata_a.owner == bond_account.issuer @ BondErrorCode::WrongCollateralRecepient,
         constraint = issuer_ata_a.owner == issuer.key()
     )]
@@ -56,7 +57,7 @@ impl<'info> Repay<'info> {
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
                 anchor_spl::token::Transfer {
-                    from: ctx.accounts.vault_account.to_account_info(),
+                    from: ctx.accounts.vault_ata_a.to_account_info(),
                     to: ctx.accounts.issuer_ata_a.to_account_info(),
                     authority: ctx.accounts.bond_account.to_account_info(),
                 },
@@ -66,11 +67,42 @@ impl<'info> Repay<'info> {
                     &[ctx.accounts.bond_account.bump],
                 ]],
             ),
-            ctx.accounts.vault_account.amount,
+            ctx.accounts.vault_ata_a.amount,
         )?;
 
-        msg!(">> Bond was successfully repaid.");
+        msg!(
+            ">> Bond was successfully repaid.
+            Repayment recepient :: {0}
+            Repayment ammount :: {1}
+            Repayment mint :: {2}",
+            ctx.accounts.owner_ata_b.key(),
+            ctx.accounts.bond_account.amount_b,
+            ctx.accounts.bond_account.mint_b
+        );
 
+        // Close vault account
+        anchor_spl::token::close_account(CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info(),
+            anchor_spl::token::CloseAccount {
+                account: ctx.accounts.vault_ata_a.to_account_info(),
+                destination: ctx.accounts.issuer.to_account_info(),
+                //destination: ctx.accounts.issuer_ata_a.to_account_info(),
+                authority: ctx.accounts.bond_account.to_account_info(),
+            },
+            &[&[
+                "bond_account".as_bytes(),
+                ctx.accounts.bond_account.issuer.key().as_ref(),
+                &[ctx.accounts.bond_account.bump],
+            ]],
+        ))?;
+
+        msg!(
+            ">> Bond was successfully closed.
+            Issued by :: {0}
+            Closed by  :: {1}",
+            ctx.accounts.bond_account.issuer.key(),
+            ctx.accounts.issuer.key()
+        );
         Ok(())
     }
 }

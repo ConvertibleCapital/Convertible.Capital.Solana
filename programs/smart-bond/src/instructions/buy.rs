@@ -12,9 +12,13 @@ pub struct Buy<'info> {
         bump = bond_account.bump
     )]
     pub bond_account: Account<'info, BondAccount>,
-    #[account(mut/*, constraint = vault_account.key() == bond_account.vault_key*/)]
-    pub vault_account: Account<'info, TokenAccount>,
-    #[account(mut, constraint = owner_ata_b.mint == bond_account.mint_b)]
+    #[account(mut/*, constraint = vault_ata_a.key() == bond_account.vault_key*/)]
+    pub vault_ata_a: Account<'info, TokenAccount>,
+    #[account(
+        mut,
+        constraint = owner_ata_b.mint == bond_account.mint_b,
+        constraint = owner_ata_b.owner == bond_account.owner
+    )]
     pub owner_ata_b: Account<'info, TokenAccount>,
     #[account(
         mut,

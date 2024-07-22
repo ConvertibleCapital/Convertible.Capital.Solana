@@ -4,10 +4,11 @@ use anchor_lang::prelude::*;
 #[account]
 #[derive(InitSpace)]
 pub struct BondAccount {
-    pub seed: u64,
+    pub id: u64,
     pub bump: u8,
     pub issuer: Pubkey,
     pub owner: Pubkey,
+    pub vault: Pubkey,
 
     #[max_len(32)]
     pub name: String,
@@ -25,10 +26,11 @@ pub struct BondAccount {
 
 // impl Space for BondAccount {
 //     const INIT_SPACE: usize = 8 +         // discriminator
-//         8 +         // seed
+//         8 +         // id
 //         1 +         // bump
 //         32 +        // issuer
 //         32 +        // owner
+//         32 +        // vault
 
 //         (4 + 32) +  // 32 chars of name (bond name)
 //         8 +         // amount

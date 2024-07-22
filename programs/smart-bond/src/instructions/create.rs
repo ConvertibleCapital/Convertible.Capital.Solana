@@ -1,10 +1,13 @@
-use crate::modes::Convertible;
 use crate::states::BondAccount;
+use crate::{errors::BondErrorCode, modes::Convertible};
 use anchor_lang::prelude::*;
-use anchor_spl::token::{Mint, Token, TokenAccount};
+use anchor_spl::{
+    associated_token::AssociatedToken,
+    token::{Mint, Token, TokenAccount},
+};
 
 #[derive(Accounts)]
-#[instruction(seed: u64, issuer_amount: u64)]
+#[instruction(id: u64)]
 pub struct Create<'info> {
     #[account(mut)]
     pub issuer: Signer<'info>,
@@ -13,7 +16,7 @@ pub struct Create<'info> {
     #[account(
         mut,
         constraint = issuer_ata_a.mint == mint_a.key(),
-        constraint = issuer_ata_a.mint == vault_account.mint,
+        constraint = issuer_ata_a.mint == vault_ata_a.mint,
         constraint = issuer_ata_a.owner == issuer.key()
     )]
     pub issuer_ata_a: Account<'info, TokenAccount>,
@@ -27,21 +30,21 @@ pub struct Create<'info> {
     )]
     pub bond_account: Account<'info, BondAccount>,
     #[account(
-        init,
+        init_if_needed,
         payer = issuer,
-        token::mint = mint_a,
-        token::authority = bond_account,
+        associated_token::mint = mint_a,
+        associated_token::authority = bond_account,
     )]
-    pub vault_account: Account<'info, TokenAccount>,
+    pub vault_ata_a: Account<'info, TokenAccount>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
+    pub associated_token_program: Program<'info, AssociatedToken>,
 }
 
 impl<'info> Create<'info> {
     pub fn create_bond(
         ctx: Context<Create>,
-        seed: u64,
-        // bumps: &InitializeBumps,
+        id: u64,
         name: String,
         amount_a: u64,
         amount_b: u64,
@@ -50,12 +53,18 @@ impl<'info> Create<'info> {
         price_feed: Pubkey,
         convertible: Convertible,
     ) -> Result<()> {
+        require!(
+            ctx.accounts.vault_ata_a.amount < amount_a,
+            BondErrorCode::BondAlreadyExists
+        );
+
         // Saving info into program's on-chain bond_account.
         let bond_account_data = &mut ctx.accounts.bond_account;
-        bond_account_data.seed = seed;
+        bond_account_data.id = id;
         bond_account_data.bump = ctx.bumps.bond_account;
         bond_account_data.issuer = ctx.accounts.issuer.key();
         bond_account_data.owner = ctx.accounts.issuer.key();
+        bond_account_data.vault = ctx.accounts.vault_ata_a.key();
 
         bond_account_data.name = name;
         bond_account_data.amount_a = amount_a;
@@ -87,7 +96,7 @@ impl<'info> Create<'info> {
                 ctx.accounts.token_program.to_account_info(),
                 anchor_spl::token::Transfer {
                     from: ctx.accounts.issuer_ata_a.to_account_info(),
-                    to: ctx.accounts.vault_account.to_account_info(),
+                    to: ctx.accounts.vault_ata_a.to_account_info(),
                     authority: ctx.accounts.issuer.to_account_info(),
                 },
             ),
@@ -99,9 +108,9 @@ impl<'info> Create<'info> {
             Vault account :: {0}
             Vault owner :: {1}
             Vault mint :: {2}",
-            ctx.accounts.vault_account.key(),
-            ctx.accounts.vault_account.owner,
-            ctx.accounts.vault_account.mint
+            ctx.accounts.vault_ata_a.key(),
+            ctx.accounts.vault_ata_a.owner,
+            ctx.accounts.vault_ata_a.mint
         );
 
         Ok(())

@@ -13,11 +13,11 @@ pub struct Cancel<'info> {
         bump = bond_account.bump,
     )]
     pub bond_account: Account<'info, BondAccount>,
-    #[account(mut/*, constraint = vault_account.key() == bond_account.vault_key*/)]
-    pub vault_account: Account<'info, TokenAccount>,
+    #[account(mut/*, constraint = vault_ata_a.key() == bond_account.vault_key*/)]
+    pub vault_ata_a: Account<'info, TokenAccount>,
     #[account(
         mut,
-        constraint = issuer_ata_a.mint == vault_account.mint,
+        constraint = issuer_ata_a.mint == vault_ata_a.mint,
         constraint = issuer_ata_a.owner == issuer.key()
     )]
     pub issuer_ata_a: Account<'info, TokenAccount>,
@@ -36,7 +36,7 @@ impl<'info> Cancel<'info> {
             CpiContext::new_with_signer(
                 ctx.accounts.token_program.to_account_info(),
                 anchor_spl::token::Transfer {
-                    from: ctx.accounts.vault_account.to_account_info(),
+                    from: ctx.accounts.vault_ata_a.to_account_info(),
                     to: ctx.accounts.issuer_ata_a.to_account_info(),
                     authority: ctx.accounts.bond_account.to_account_info(),
                 },
@@ -46,14 +46,14 @@ impl<'info> Cancel<'info> {
                     &[ctx.accounts.bond_account.bump],
                 ]],
             ),
-            ctx.accounts.vault_account.amount,
+            ctx.accounts.vault_ata_a.amount,
         )?;
 
         // Close vault account
         anchor_spl::token::close_account(CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info(),
             anchor_spl::token::CloseAccount {
-                account: ctx.accounts.vault_account.to_account_info(),
+                account: ctx.accounts.vault_ata_a.to_account_info(),
                 destination: ctx.accounts.issuer.to_account_info(),
                 //destination: ctx.accounts.issuer_ata_a.to_account_info(),
                 authority: ctx.accounts.bond_account.to_account_info(),

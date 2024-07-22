@@ -25,5 +25,7 @@ pub enum BondErrorCode {
     #[msg("Repayment recepient must be a bond owner")]
     WrongRepaymentRecepient,
     #[msg("Collateral recepient must be a bond issuer")]
-    WrongCollateralRecepient
+    WrongCollateralRecepient,
+    #[msg("Bond already exists and collateralized")]
+    BondAlreadyExists,
 }

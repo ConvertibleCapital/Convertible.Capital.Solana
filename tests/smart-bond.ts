@@ -2,7 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { SmartBond } from "../target/types/smart_bond";
 import { randomBytes } from "crypto";
-import { createAccount, createMint, mintTo, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, AccountLayout, getOrCreateAssociatedTokenAccount, getAccount } from "@solana/spl-token";
+import { createAccount, createMint, mintTo, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, AccountLayout, getOrCreateAssociatedTokenAccount, getAccount, getAssociatedTokenAddressSync } from "@solana/spl-token";
 import { Keypair, LAMPORTS_PER_SOL, PublicKey, SystemProgram, SYSVAR_RENT_PUBKEY, Transaction, TransactionMessage, VersionedTransaction } from "@solana/web3.js";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 
@@ -21,7 +21,6 @@ describe("smart-bond", () => {
   const issuer = anchor.web3.Keypair.generate();
   const owner = anchor.web3.Keypair.generate();
   const payer = (provider.wallet as NodeWallet).payer;
-  const escrow_a_token = anchor.web3.Keypair.generate();
   const mint_a_authoriry = anchor.web3.Keypair.generate();
   const mint_b_authoriry = anchor.web3.Keypair.generate();
 
@@ -37,6 +36,7 @@ describe("smart-bond", () => {
   let owner_a_token;
   let owner_b_token;
   let escrow: anchor.web3.PublicKey;
+  let escrow_a_token: anchor.web3.PublicKey;
 
   before(async () => {
 
@@ -44,12 +44,6 @@ describe("smart-bond", () => {
     await provider.connection.requestAirdrop(owner.publicKey, 1 * LAMPORTS_PER_SOL);
     await provider.connection.requestAirdrop(payer.publicKey, 1 * LAMPORTS_PER_SOL);
     await provider.connection.requestAirdrop(issuer.publicKey, 1 * LAMPORTS_PER_SOL);
-
-    // Derive escrow address
-    [escrow] = PublicKey.findProgramAddressSync(
-      [Buffer.from("bond_account"), issuer.publicKey.toBuffer()],
-      program.programId
-    )
 
     console.log("Creating the 'A' (ETH) mint...");
     mint_a = await createMint(
@@ -139,6 +133,15 @@ describe("smart-bond", () => {
       TOKEN_PROGRAM_ID,
     );
 
+    // Derive escrow address
+    [escrow] = PublicKey.findProgramAddressSync(
+      [Buffer.from("bond_account"), issuer.publicKey.toBuffer()],
+      program.programId
+    )
+
+    // Derive associated escrow address
+    escrow_a_token = (await getAssociatedTokenAddressSync(mint_a, escrow, true));
+
   })
 
   function addDays(date, days) {
@@ -165,12 +168,13 @@ describe("smart-bond", () => {
           mintB: mint_b,
           issuerAtaA: issuer_a_token,
           bondAccount: escrow,
-          vaultAccount: escrow_a_token.publicKey,
+          vaultAtaA: escrow_a_token,
           tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId
+          systemProgram: SystemProgram.programId,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID
         }
       )
-      .signers([issuer, escrow_a_token])
+      .signers([issuer])
       .rpc({ skipPreflight: true });
   });
 
@@ -215,7 +219,7 @@ describe("smart-bond", () => {
       .accounts({
         buyer: owner.publicKey,       //buyer.publicKey,
         bondAccount: escrow,
-        vaultAccount: escrow_a_token.publicKey,
+        vaultAtaA: escrow_a_token,
         ownerAtaB: issuer_b_token,    //owner_b_token,
         buyerAtaB: owner_b_token,     //buyer_b_token,
         tokenProgram: TOKEN_PROGRAM_ID
@@ -256,7 +260,7 @@ describe("smart-bond", () => {
       .accounts({
         issuer: issuer.publicKey,
         bondAccount: escrow,
-        vaultAccount: escrow_a_token.publicKey,
+        vaultAtaA: escrow_a_token,
         issuerAtaA: issuer_a_token,
         issuerAtaB: issuer_b_token,
         ownerAtaB: owner_b_token,
@@ -271,7 +275,7 @@ describe("smart-bond", () => {
       .accounts({
         owner: owner.publicKey,
         bondAccount: escrow,
-        vaultAccount: escrow_a_token.publicKey,
+        vaultAtaA: escrow_a_token,
         ownerAtaA: owner_a_token,
         tokenProgram: TOKEN_PROGRAM_ID
       })
@@ -290,7 +294,7 @@ describe("smart-bond", () => {
       .accounts({
         issuer: issuer.publicKey,
         bondAccount: escrow,
-        vaultAccount: escrow_a_token.publicKey,
+        vaultAtaA: escrow_a_token,
         issuerAtaA: issuer_a_token,
         tokenProgram: TOKEN_PROGRAM_ID
       })
@@ -324,7 +328,7 @@ describe("smart-bond", () => {
     console.log(` Issuer account: ${issuerBalance / LAMPORTS_PER_SOL}`)
     let ownerBalance = await provider.connection.getBalance(owner.publicKey)
     console.log(` Owner account: ${ownerBalance / LAMPORTS_PER_SOL}`)
-    let bondBalance = await provider.connection.getBalance(escrow_a_token.publicKey)
+    let bondBalance = await provider.connection.getBalance(escrow_a_token)
     console.log(` Bond account: ${bondBalance / LAMPORTS_PER_SOL}`)
   }
 

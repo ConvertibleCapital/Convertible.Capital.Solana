@@ -8,6 +8,9 @@ smart_bond = "97USSTPNysfsokmHgYjfMzZxHYy4GHhK419vJ8Kk6sdt"
 [programs.devnet]
 smart_bond = "97USSTPNysfsokmHgYjfMzZxHYy4GHhK419vJ8Kk6sdt"
 
+[programs.testnet]
+smart_bond = "97USSTPNysfsokmHgYjfMzZxHYy4GHhK419vJ8Kk6sdt"
+
 [registry]
 url = "https://api.apr.dev"
 
