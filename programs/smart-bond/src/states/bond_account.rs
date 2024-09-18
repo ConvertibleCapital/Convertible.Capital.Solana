@@ -24,6 +24,7 @@ pub struct BondAccount {
     pub convertible: Convertible,
 }
 
+// https://www.anchor-lang.com/docs/space
 // impl Space for BondAccount {
 //     const INIT_SPACE: usize = 8 +         // discriminator
 //         8 +         // id
@@ -32,16 +33,16 @@ pub struct BondAccount {
 //         32 +        // owner
 //         32 +        // vault
 
-//         (4 + 32) +  // 32 chars of name (bond name)
+//         (4 + 32) +  // name
 //         8 +         // amount
 //         32 +        // mint
 //         8 +         // collateral_amount
 //         32 +        // collateral_mint
-//         8 +         // maturity
-//         ? +         // is_for_sale
-//                     //sale_price
-//                     //price_feed
-//                     //is_convertible
-//         ? +         // convertible_price
-//         ? +         // convertible_mode
+//         8 +         // maturity_date
+//         1 +         // is_for_sale
+//         8 +         // sale_price
+//         32 +        // price_feed
+//         1 +         // is_convertible
+//         (1 + 16) +  // convertible
 // }
+// total: 296 bytes

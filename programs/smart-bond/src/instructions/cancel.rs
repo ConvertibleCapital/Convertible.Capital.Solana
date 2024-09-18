@@ -9,10 +9,10 @@ pub struct Cancel<'info> {
     #[account(
         mut,
         close = issuer, constraint = bond_account.issuer == issuer.key(),
-        seeds = ["bond_account".as_bytes(), bond_account.issuer.as_ref()],
+        seeds = ["bond_account".as_bytes(), bond_account.id.to_le_bytes().as_ref()],
         bump = bond_account.bump,
     )]
-    pub bond_account: Account<'info, BondAccount>,
+    pub bond_account: Box<Account<'info, BondAccount>>,
     #[account(mut/*, constraint = vault_ata_a.key() == bond_account.vault_key*/)]
     pub vault_ata_a: Account<'info, TokenAccount>,
     #[account(
@@ -42,7 +42,7 @@ impl<'info> Cancel<'info> {
                 },
                 &[&[
                     "bond_account".as_bytes(),
-                    ctx.accounts.bond_account.issuer.as_ref(),
+                    ctx.accounts.bond_account.id.to_le_bytes().as_ref(),
                     &[ctx.accounts.bond_account.bump],
                 ]],
             ),
@@ -68,7 +68,7 @@ impl<'info> Cancel<'info> {
         msg!(
             ">> Bond was successfully closed.
             Issued by :: {0}
-            Closed by  :: {1}",
+            Closed by :: {1}",
             ctx.accounts.bond_account.issuer.key(),
             ctx.accounts.issuer.key()
         );

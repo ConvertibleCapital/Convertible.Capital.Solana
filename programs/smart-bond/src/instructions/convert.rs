@@ -9,10 +9,10 @@ pub struct Convert<'info> {
     #[account(
         mut,
         close = owner, constraint = bond_account.owner == owner.key(),
-        seeds = ["bond_account".as_bytes(), bond_account.issuer.as_ref()],
+        seeds = ["bond_account".as_bytes(), bond_account.id.to_le_bytes().as_ref()],
         bump = bond_account.bump
     )]
-    pub bond_account: Account<'info, BondAccount>,
+    pub bond_account: Box<Account<'info, BondAccount>>,
     #[account(mut/*, constraint = vault_ata_a.key() == bond_account.vault_key*/)]
     pub vault_ata_a: Account<'info, TokenAccount>,
     #[account(mut, 
@@ -42,7 +42,7 @@ impl<'info> Convert<'info> {
                 },
                 &[&[
                     "bond_account".as_bytes(),
-                    ctx.accounts.bond_account.issuer.as_ref(),
+                    ctx.accounts.bond_account.id.to_le_bytes().as_ref(),
                     &[ctx.accounts.bond_account.bump],
                 ]],
             ),

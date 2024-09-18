@@ -9,10 +9,10 @@ use anchor_lang::prelude::*;
 pub struct Pyth<'info> {
     #[account(
         mut,
-        seeds = ["bond_account".as_bytes(), bond_account.issuer.as_ref()],
+        seeds = ["bond_account".as_bytes(), bond_account.id.to_le_bytes().as_ref()],
         bump = bond_account.bump
     )]
-    pub bond_account: Account<'info, BondAccount>,
+    pub bond_account: Box<Account<'info, BondAccount>>,
     #[account(
         address = bond_account.price_feed @ PriceErrorCode::InvalidArgument
     )]

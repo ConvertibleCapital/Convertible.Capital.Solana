@@ -7,10 +7,10 @@ pub struct Sell<'info> {
     pub owner: Signer<'info>,
     #[account(
         mut,
-        seeds = ["bond_account".as_bytes(), bond_account.issuer.as_ref()],
+        seeds = ["bond_account".as_bytes(), bond_account.id.to_le_bytes().as_ref()],
         bump = bond_account.bump
     )]
-    pub bond_account: Account<'info, BondAccount>,
+    pub bond_account: Box<Account<'info, BondAccount>>,
 }
 
 impl<'info> Sell<'info> {

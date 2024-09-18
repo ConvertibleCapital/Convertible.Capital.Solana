@@ -16,19 +16,18 @@ pub struct Create<'info> {
     #[account(
         mut,
         constraint = issuer_ata_a.mint == mint_a.key(),
-        constraint = issuer_ata_a.mint == vault_ata_a.mint,
         constraint = issuer_ata_a.owner == issuer.key()
     )]
     pub issuer_ata_a: Account<'info, TokenAccount>,
     #[account(
         init_if_needed,
         payer = issuer,
-        space = BondAccount::INIT_SPACE,
-        //seeds = [b"bond_account".as_ref(), &seed.to_le_bytes()],
-        seeds = ["bond_account".as_bytes(), issuer.key().as_ref()],
+        space = 8 + BondAccount::INIT_SPACE,
+        seeds = ["bond_account".as_bytes(), &id.to_le_bytes()],
+        //seeds = ["bond_account".as_bytes(), issuer.key().as_ref()],
         bump
     )]
-    pub bond_account: Account<'info, BondAccount>,
+    pub bond_account: Box<Account<'info, BondAccount>>,
     #[account(
         init_if_needed,
         payer = issuer,
