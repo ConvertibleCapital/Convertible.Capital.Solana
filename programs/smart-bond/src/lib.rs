@@ -17,25 +17,27 @@ pub mod smart_bond {
 
     pub fn create_bond(
         ctx: Context<Create>,
-        seed: u64,
+        bond_id: u64,
         //bumps: &InitializeBumps,
         name: String,
         amount_a: u64, //collateral
         amount_b: u64, //loan (face)
         maturity_date: i64,
         is_for_sale: bool,
-        price_feed: Pubkey,
+        sale_message: String,
+        price_feed: String,
         convertible: Convertible,
     ) -> Result<()> {
         Create::create_bond(
             ctx,
-            seed,
+            bond_id,
             /*bumps,*/
             name,
             amount_a,
             amount_b,
             maturity_date,
             is_for_sale,
+            sale_message,
             price_feed,
             convertible,
         )
@@ -45,8 +47,13 @@ pub mod smart_bond {
         Cancel::cancel_bond(ctx)
     }
 
-    pub fn sell_bond(ctx: Context<Sell>, is_for_sale: bool, sale_price: u64) -> Result<()> {
-        Sell::sell_bond(ctx, is_for_sale, sale_price)
+    pub fn sell_bond(
+        ctx: Context<Sell>,
+        is_for_sale: bool,
+        sale_price: u64,
+        sale_message: String,
+    ) -> Result<()> {
+        Sell::sell_bond(ctx, is_for_sale, sale_price, sale_message)
     }
 
     pub fn buy_bond(ctx: Context<Buy>) -> Result<()> {

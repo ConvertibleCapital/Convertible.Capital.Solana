@@ -60,7 +60,7 @@ impl<'info> Cancel<'info> {
             },
             &[&[
                 "bond_account".as_bytes(),
-                ctx.accounts.issuer.key().as_ref(),
+                ctx.accounts.bond_account.id.to_le_bytes().as_ref(),
                 &[ctx.accounts.bond_account.bump],
             ]],
         ))?;

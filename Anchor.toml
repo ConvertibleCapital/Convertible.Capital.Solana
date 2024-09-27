@@ -18,6 +18,11 @@ url = "https://api.apr.dev"
 cluster = "localnet"
 wallet = "~/.config/solana/id.json"
 
+[test]
+startup_wait = 10000
+shutdown_wait = 2000
+upgradeable = false
+
 [scripts]
 test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 
@@ -25,7 +30,5 @@ test = "yarn run ts-mocha -p ./tsconfig.json -t 1000000 tests/**/*.ts"
 url = "https://api.mainnet-beta.solana.com"
 
 [[test.validator.clone]]
-address = "H6ARHf6YXhGYeQfUzQNGk6rDNnLBQKrenN712K4AQJEG"
+address = "7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE"
 
-[toolchain]
-anchor_version = "0.29.0"

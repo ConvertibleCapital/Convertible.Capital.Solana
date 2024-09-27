@@ -1,5 +1,7 @@
 import * as anchor from "@coral-xyz/anchor";
 import { BN, Program } from "@coral-xyz/anchor";
+import { PythSolanaReceiver } from "@pythnetwork/pyth-solana-receiver";
+import { PriceServiceConnection } from "@pythnetwork/price-service-client";
 import { SmartBond } from "../target/types/smart_bond";
 import { randomBytes } from "crypto";
 import {
@@ -49,13 +51,12 @@ describe("smart-bond", () => {
     return result;
   };
 
-  // Set the same value in Anchor.toml 
-  const PYTH_FEED_ID = new anchor.web3.PublicKey(
-    //"H6ARHf6YXhGYeQfUzQNGk6rDNnLBQKrenN712K4AQJEG"
-    //"AFrYBhb5wKQtxRS9UA9YRS4V3dwFm7SqmS6DHKq6YVgo"
-    "7jAVut34sgRj6erznsYvLYvjc9GJwXTpN88ThZSDJ65G"
+  // https://docs.pyth.network/price-feeds/sponsored-feeds
+  const PYTH_FEED_ID =
+    "ef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d";
+  const PYTH_ACCOUNT_ADDRESS = new anchor.web3.PublicKey(
+    "7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE"
   );
-
   const BOND_ID = getRandomBigNumber();
 
   before(async () => {
@@ -184,6 +185,7 @@ describe("smart-bond", () => {
         new anchor.BN(ammount_b),
         maturityDate,
         isForSale,
+        "High performance bond from CryCo24.",
         PYTH_FEED_ID,
         convertible
       )
@@ -195,6 +197,7 @@ describe("smart-bond", () => {
         bondAccount: escrow,
         vaultAtaA: escrow_a_token,
         tokenProgram: TOKEN_PROGRAM_ID,
+        clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
         systemProgram: SystemProgram.programId,
         associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
       })
@@ -241,7 +244,11 @@ describe("smart-bond", () => {
 
   it("<Sell the bond>", async () => {
     const tx = await program.methods
-      .sellBond(true, new anchor.BN(ammount_c))
+      .sellBond(
+        true,
+        new anchor.BN(ammount_c),
+        `Hello, I am the new bond owner. I bought it for ${ammount_c}.`
+      )
       .accounts({
         owner: issuer.publicKey, // issuer or owner
         bondAccount: escrow,
@@ -278,16 +285,25 @@ describe("smart-bond", () => {
   });
 
   it("<Check market price>", async () => {
+    // This is another way how to import the feedAccount.
+    // Now we use [[test.validator.clone]] in Anchor.toml.
+    // const SOL_PRICE_FEED_ID = "0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d";
+    // const solUsdPriceFeedAccount = pythSolanaReceiver.getPriceFeedAccountAddress(0, SOL_PRICE_FEED_ID).toBase58();
+    // const solUsdPriceFeedAccountPubkey = new PublicKey(solUsdPriceFeedAccount);
+    // const devnetConnection = new Connection("https://api.devnet.solana.com");
+    // const feedAccountInfo = await devnetConnection.getAccountInfo(solUsdPriceFeedAccountPubkey);
+
     const tx = await program.methods
       .checkBond()
       .accounts({
         bondAccount: escrow,
-        priceFeed: PYTH_FEED_ID,
+        priceUpdate: PYTH_ACCOUNT_ADDRESS,
         clock: anchor.web3.SYSVAR_CLOCK_PUBKEY,
         systemProgram: anchor.web3.SystemProgram.programId,
       })
       .rpc({ skipPreflight: true });
-    console.log("Oracle Price Feed :: ", PYTH_FEED_ID.toString());
+
+    console.log("Oracle Price Feed :: ", PYTH_ACCOUNT_ADDRESS.toString());
     console.log("Transaction signature :: ", tx);
   });
 

@@ -17,9 +17,13 @@ pub struct BondAccount {
     pub amount_a: u64,
     pub mint_a: Pubkey,
     pub maturity_date: i64,
+    pub creation_date: i64,
     pub is_for_sale: bool,
     pub sale_price: u64,
-    pub price_feed: Pubkey,
+    #[max_len(128)]
+    pub sale_message: String,
+    #[max_len(64)]
+    pub price_feed: String,
     pub is_convertible: bool,
     pub convertible: Convertible,
 }
@@ -33,16 +37,18 @@ pub struct BondAccount {
 //         32 +        // owner
 //         32 +        // vault
 
-//         (4 + 32) +  // name
+//         (4 + ?) +   // name
 //         8 +         // amount
 //         32 +        // mint
 //         8 +         // collateral_amount
 //         32 +        // collateral_mint
 //         8 +         // maturity_date
+//         8 +         // creation_date
 //         1 +         // is_for_sale
 //         8 +         // sale_price
-//         32 +        // price_feed
+//         (4 + ?) +   // sale_message
+//         (4 + ?) +   // price_feed
 //         1 +         // is_convertible
 //         (1 + 16) +  // convertible
 // }
-// total: 296 bytes
+// total: 304 bytes

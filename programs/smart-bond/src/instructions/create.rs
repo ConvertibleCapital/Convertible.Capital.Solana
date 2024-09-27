@@ -7,7 +7,7 @@ use anchor_spl::{
 };
 
 #[derive(Accounts)]
-#[instruction(id: u64)]
+#[instruction(bond_id: u64)]
 pub struct Create<'info> {
     #[account(mut)]
     pub issuer: Signer<'info>,
@@ -23,7 +23,7 @@ pub struct Create<'info> {
         init_if_needed,
         payer = issuer,
         space = 8 + BondAccount::INIT_SPACE,
-        seeds = ["bond_account".as_bytes(), &id.to_le_bytes()],
+        seeds = ["bond_account".as_bytes(), &bond_id.to_le_bytes()],
         //seeds = ["bond_account".as_bytes(), issuer.key().as_ref()],
         bump
     )]
@@ -36,6 +36,7 @@ pub struct Create<'info> {
     )]
     pub vault_ata_a: Account<'info, TokenAccount>,
     pub token_program: Program<'info, Token>,
+    pub clock: Sysvar<'info, Clock>,
     pub system_program: Program<'info, System>,
     pub associated_token_program: Program<'info, AssociatedToken>,
 }
@@ -43,13 +44,14 @@ pub struct Create<'info> {
 impl<'info> Create<'info> {
     pub fn create_bond(
         ctx: Context<Create>,
-        id: u64,
+        bond_id: u64,
         name: String,
         amount_a: u64,
         amount_b: u64,
         maturity_date: i64,
         is_for_sale: bool,
-        price_feed: Pubkey,
+        sale_message: String,
+        price_feed: String,
         convertible: Convertible,
     ) -> Result<()> {
         require!(
@@ -58,8 +60,9 @@ impl<'info> Create<'info> {
         );
 
         // Saving info into program's on-chain bond_account.
+        let clock = &ctx.accounts.clock;
         let bond_account_data = &mut ctx.accounts.bond_account;
-        bond_account_data.id = id;
+        bond_account_data.id = bond_id;
         bond_account_data.bump = ctx.bumps.bond_account;
         bond_account_data.issuer = ctx.accounts.issuer.key();
         bond_account_data.owner = ctx.accounts.issuer.key();
@@ -71,7 +74,9 @@ impl<'info> Create<'info> {
         bond_account_data.amount_b = amount_b;
         bond_account_data.mint_b = ctx.accounts.mint_b.key();
         bond_account_data.maturity_date = maturity_date;
+        bond_account_data.creation_date = clock.unix_timestamp;
         bond_account_data.is_for_sale = is_for_sale;
+        bond_account_data.sale_message = sale_message;
         bond_account_data.sale_price = amount_b;
         bond_account_data.price_feed = price_feed;
         bond_account_data.is_convertible = false;

@@ -14,7 +14,12 @@ pub struct Sell<'info> {
 }
 
 impl<'info> Sell<'info> {
-    pub fn sell_bond(ctx: Context<Sell>, is_for_sale: bool, sale_price: u64) -> Result<()> {
+    pub fn sell_bond(
+        ctx: Context<Sell>,
+        is_for_sale: bool,
+        sale_price: u64,
+        sale_message: String,
+    ) -> Result<()> {
         require!(
             ctx.accounts.bond_account.owner == ctx.accounts.owner.key(),
             BondErrorCode::NotEntitledForSell
@@ -24,6 +29,7 @@ impl<'info> Sell<'info> {
         let bond_account_data = &mut ctx.accounts.bond_account;
         bond_account_data.is_for_sale = is_for_sale;
         bond_account_data.sale_price = sale_price;
+        bond_account_data.sale_message = sale_message;
 
         msg!(
             ">> Bond is open for sale.
