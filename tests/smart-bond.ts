@@ -2,7 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { BN, Program } from "@coral-xyz/anchor";
 import { PythSolanaReceiver } from "@pythnetwork/pyth-solana-receiver";
 import { PriceServiceConnection } from "@pythnetwork/price-service-client";
-import { SmartBond } from "../target/types/smart_bond";
+import { SmartBondVishnu } from "../target/types/smart_bond_vishnu";
 import { randomBytes } from "crypto";
 import {
   createAccount,
@@ -16,11 +16,11 @@ import {
 import { LAMPORTS_PER_SOL, PublicKey, SystemProgram } from "@solana/web3.js";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
 
-describe("smart-bond", () => {
+describe("smart-bond-vishnu", () => {
   const provider = anchor.AnchorProvider.env();
   const connection = provider.connection;
   anchor.setProvider(provider);
-  const program = anchor.workspace.SmartBond as Program<SmartBond>;
+  const program = anchor.workspace.SmartBondVishnu as Program<SmartBondVishnu>;
 
   const issuer = anchor.web3.Keypair.generate();
   const owner = anchor.web3.Keypair.generate();
@@ -276,9 +276,6 @@ describe("smart-bond", () => {
   });
 
   it("<Accounts revision>", async () => {
-    //const [userSmartBond, _] = await anchor.web3.PublicKey.findProgramAddressSync([Buffer.from("bond_account"), seller.publicKey.toBuffer()], program.programId);
-    //let bondDetails = await program.account.bondAccount.fetch(userSmartBond);
-    //console.log(` New Bond owner :: ${bondDetails.owner} `);
     await getMints("> Issuer (bond is sold)", issuer.publicKey);
     await getMints("> Owner (new owner)", owner.publicKey);
     await getMints("> Escrow", escrow);

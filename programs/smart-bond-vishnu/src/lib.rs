@@ -11,7 +11,7 @@ pub mod states;
 declare_id!("97USSTPNysfsokmHgYjfMzZxHYy4GHhK419vJ8Kk6sdt");
 
 #[program]
-pub mod smart_bond {
+pub mod smart_bond_vishnu {
 
     use super::*;
 
