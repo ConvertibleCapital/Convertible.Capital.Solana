@@ -3,13 +3,13 @@ seeds = true
 skip-lint = false
 
 [programs.localnet]
-smart_bond_vishnu = "97USSTPNysfsokmHgYjfMzZxHYy4GHhK419vJ8Kk6sdt"
+smart_bond_vishnu = "AQMyDXzfZYUgji3ksUwTT1r5267Jm6URX6owQbw3SrV8"
 
 [programs.devnet]
-smart_bond_vishnu = "97USSTPNysfsokmHgYjfMzZxHYy4GHhK419vJ8Kk6sdt"
+smart_bond_vishnu = "AQMyDXzfZYUgji3ksUwTT1r5267Jm6URX6owQbw3SrV8"
 
 [programs.testnet]
-smart_bond_vishnu = "97USSTPNysfsokmHgYjfMzZxHYy4GHhK419vJ8Kk6sdt"
+smart_bond_vishnu = "AQMyDXzfZYUgji3ksUwTT1r5267Jm6URX6owQbw3SrV8"
 
 [registry]
 url = "https://api.apr.dev"

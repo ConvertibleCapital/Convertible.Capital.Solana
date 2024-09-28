@@ -8,7 +8,7 @@ pub mod instructions;
 pub mod modes;
 pub mod states;
 
-declare_id!("97USSTPNysfsokmHgYjfMzZxHYy4GHhK419vJ8Kk6sdt");
+declare_id!("AQMyDXzfZYUgji3ksUwTT1r5267Jm6URX6owQbw3SrV8");
 
 #[program]
 pub mod smart_bond_vishnu {
