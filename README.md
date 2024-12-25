@@ -1,93 +1,150 @@
 # Convertible.Capital.Contract
 
+## Smart Bond
 
+**Smart Bond** is Solana [onchain program](https://solana.com/docs/core/programs) (referred to as _smart contract_ in other blockchains) that stores executable business logic.
 
-## Getting started
+## Features
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+- Written in the [Rust](https://doc.rust-lang.org/book/) programming language.
+- [Anchor](https://solana.com/docs/programs/anchor) framework for Solana program development.
+- VS Code extensions: [rust-bundle](vscode:extension/1YiB.rust-bundle), [rust-analyzer](vscode:extension/rust-lang.rust-analyzer) .
+- [Cargo](https://doc.rust-lang.org/cargo/) is the package manager.
+- [Mocha](https://mochajs.org/) framework for writing the tests and [Chai](https://www.chaijs.com/) for assertions.
+- Solana Verify CLI is the primary tool used to [verify](https://solana.com/developers/guides/advanced/verified-builds) builds.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+## Development environment setup
 
-## Add your files
+These guidelines below cover the steps to set up your local environment for Solana development.
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+- https://solana.com/docs/intro/installation
+- https://www.anchor-lang.com/docs/installation
+
+## Tools versioning
+
+Installing the latest tools and dependencies are not always guarantee successful program build and run. The following versions were used for initial stable product build. Use them in case of troubleshooting.
+
+- solana-cli 1.18.24 (src:6b04e881; feat:3241752014, client:Agave)
+- rustc 1.81.0 (eeb90cda1 2024-09-04)
+- anchor-cli 0.30.1
+
+## Build the program
+
+This command compiles your entire Anchor project, including any smart contracts within the `programs/` directory.
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/g773239167/convertible.capital.contract.git
-git branch -M main
-git push -uf origin main
+anchor clean
+anchor build
 ```
 
-## Integrate with your tools
+Upon successful build, Anchor generates several important files within the `target/` directory, including the compiled program in a _.so_ file (shared object).
 
-- [ ] [Set up project integrations](https://gitlab.com/g773239167/convertible.capital.contract/-/settings/integrations)
+## Run local validator
 
-## Collaborate with your team
+Validator is a local emulator for the Solana blockchain for building and testing Solana programs.
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+```
+solana config set --url localhost
+solana-test-validator
+```
 
-## Test and Deploy
+Optionally open the second termital for log streaming.
 
-Use the built-in continuous integration in GitLab.
+```
+solana logs --url localhost
+```
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+See [more](https://solana.com/developers/guides/getstarted/solana-test-validator) information about Solana test validator.
 
-***
+## Deploy to Localnet
 
-# Editing this README
+By default, _Anchor.toml_ config file of the current project specifies the localnet cluster. The `anchor deploy` command sends **Smart Bond** program to the single-node cluster on your workstation.
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+```
+anchor deploy
+```
 
-## Suggestions for a good README
+Now you can use this RPC URL `127.0.0.1:8899` to test your client dApp connection.
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+## Deploy to Devnet
 
-## Name
-Choose a self-explaining name for your project.
+Devnet deployment does not require any local test-validator. Program is persisted on-chain. Use _cluster_ flag to override the default deployment behavior.
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+```
+anchor deploy --provider.cluster devnet
+```
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+Now the program has been be deployed to the devnet cluster. It makes the program public for external users.
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+---
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+## Testing
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+The `anchor test` command automatically does program deployment to the local cluster, starts the validator and invokes mocha tests according to _Anchor.toml_ config file.
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+```
+anchor test
+```
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+Non-compliant tests will be marked as failing (❌) and passing as (✔️).
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+### About test prerequisites
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+The `anchor test` command simplifies deploying and testing but hides the real complexity. Pay attention on the **test.validator.clone** section in _Anchor.toml_. It clones data account of the pyth program to your localnet automatically before actual mocha tests start. It prevents _AccountNotInitialized_ error during test execution runtime.
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+Dependent account (such as Pyth data account) could be stored from the mainnet to a separate file and reused later as a "test dependency".
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+```
+solana account 7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE --url https://api.mainnet-beta.solana.com --output json > tests/pyth-price-account.json
+```
+
+Local test validator can reuse this data by re-initializing account address at the start-up.
+
+```
+solana-test-validator --reset --account 7UVimffxr9ow1uXYxsr4LHAcV58mLzhmwaeKvJ1pjLiE tests/pyth-price-account.json
+```
+
+When local validator configured correctly and program is deployed, the tests should run the same way as for `anchor test` command.
+
+```
+anchor test --skip-local-validator --skip-deploy
+```
+
+## Backward compatibility
+
+Additionally for program testing [Solana Playground](https://beta.solpg.io/) can be used. It provides browser-based UI access to the program instructions and accounts. But it requires downgraded `0.29.0` tools and IDL version.
+
+In `Anchor.toml` set lower toolchain version.
+
+```
+[toolchain]
+anchor_version = "0.29.0"
+```
+
+In `Cargo.toml` comment out idl-build feature section.
+
+```
+[features]
+#idl-build = ["anchor-lang/idl-build", "anchor-spl/idl-build"]
+```
+
+After re-building program artifacts will be compatible with `anchor-cli-wasm 0.29.0`.
+
+## Audits
+
+Solana program audit is examination and evaluation of the functionalities within **Smart Bond** contract:
+
+| Program    | Last Audit | Version          |
+| ---------- | ---------- | ---------------- |
+| Smart Bond | 2025-XX-XX | Vishnu (fffffff) |
+
+## Acknowledgment
+
+Show your appreciation to those who have contributed to the project: _Ricco_, _Air Crew_,
+_Ice Beaver_, _Trinitron_, _Skalda_. You receive our group photo right after contribution.
+
+[!["Buy Us A Coffee"](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/trinitron)
 
 ## License
-For open source projects, say how it is licensed.
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+SPDX-License-Identifier: [MIT](https://choosealicense.com/licenses/mit/).

@@ -1,7 +1,5 @@
 import * as anchor from "@coral-xyz/anchor";
 import { BN, Program } from "@coral-xyz/anchor";
-import { PythSolanaReceiver } from "@pythnetwork/pyth-solana-receiver";
-import { PriceServiceConnection } from "@pythnetwork/price-service-client";
 import { SmartBondVishnu } from "../target/types/smart_bond_vishnu";
 import { randomBytes } from "crypto";
 import {

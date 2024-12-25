@@ -37,7 +37,7 @@ pub struct BondAccount {
 //         32 +        // owner
 //         32 +        // vault
 
-//         (4 + ?) +   // name
+//         (4 + 32) +  // name
 //         8 +         // amount
 //         32 +        // mint
 //         8 +         // collateral_amount
@@ -46,9 +46,9 @@ pub struct BondAccount {
 //         8 +         // creation_date
 //         1 +         // is_for_sale
 //         8 +         // sale_price
-//         (4 + ?) +   // sale_message
-//         (4 + ?) +   // price_feed
+//         (4 + 128) + // sale_message
+//         (4 + 64) +  // price_feed
 //         1 +         // is_convertible
 //         (1 + 16) +  // convertible
 // }
-// total: 304 bytes
+// total: 464 bytes
